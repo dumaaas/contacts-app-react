@@ -2,6 +2,9 @@ import './App.css';
 import {useSelector, useDispatch} from "react-redux";
 import {useState} from 'react'
 import {addLabel} from './features/Labels';
+import {deleteContact, addOrRemoveFromFavorites, filterContacts} from './features/Contacts';
+import avatar from './images/png/Avatar.png';
+import danger from './images/png/danger.png';
 
 function App() {
   
@@ -15,12 +18,16 @@ function App() {
   
   // state toggler for modal label
   const [showModal, setShowModal] = useState(false);
+  // state toggler for delete contact modal
+  const [showContactModal, setShowContactModal] = useState(false);
   // state for label name
   const [labelName, setLabelName] = useState("");
   // state for validation error 
   const [labelValidation, setLabelValidation] = useState('');
   // state for success toast
   const [showSuccessToast, setShowSuccessToast] = useState(false); 
+  // state for user id who should be deleted
+  const [contactId, setContactId] = useState(0);
  
   // length of favorites contacts
   const favoritesLength = contactList.filter((item) => {
@@ -35,6 +42,7 @@ function App() {
     return length;
   })
 
+  // function for submiting label when we are creating one
   const submitLabel = (() => {
     // if label input is empty show validation msg
     if(!labelName.length) {
@@ -72,6 +80,30 @@ function App() {
     setShowModal(false);
     
     // finally, we show success msg in toast for 2 seconds and after that we hide toast again
+    setShowSuccessToast(true);
+    setTimeout(() => {
+      setShowSuccessToast(false);
+    }, 2000);
+  })
+
+  // function for removing contact from store
+  const removeContact = ((id) => {
+    // we delete contact from store
+    dispatch(deleteContact({id: id}));
+    // after that we show success msg
+    setShowSuccessToast(true);
+    setTimeout(() => {
+      setShowSuccessToast(false);
+    }, 2000);
+    // hide delete modal
+    setShowContactModal(false);
+  })
+
+  // function for adding or removing contact from list of favorites
+  const favContact = ((contact) => {
+    // we add or remove contact from favorites
+    dispatch(addOrRemoveFromFavorites({id: contact.id, isFavorite: !contact.isFavorite}));
+    // after that we show success msg
     setShowSuccessToast(true);
     setTimeout(() => {
       setShowSuccessToast(false);
@@ -181,12 +213,80 @@ function App() {
         <div className="Dashboard-main flex flex-col px-[32px] pb-[26px] gap-[24px] ml-[255px]">
           {/* Search | Start */}
           <div className="relative Search">
-            <input type="text" placeholder="Search" className="px-[38px] py-[21.5px] w-full border-b-[1px] border-x-gray-200 outline-none"/>
+            <input type="text" placeholder="Search" className="px-[38px] py-[21.5px] w-full border-b-[1px] border-x-gray-200 outline-none" onChange={(event) => {dispatch(filterContacts({search: event.target.value}));}}/>
             <svg className="absolute transform top-[38%] left-[8px]" xmlns="http://www.w3.org/2000/svg" width="16" height="17" viewBox="0 0 16 17" fill="none">
               <path fill-rule="evenodd" clip-rule="evenodd" d="M6 2.5C3.79086 2.5 2 4.29086 2 6.5C2 8.70914 3.79086 10.5 6 10.5C8.20914 10.5 10 8.70914 10 6.5C10 4.29086 8.20914 2.5 6 2.5ZM0 6.5C0 3.18629 2.68629 0.5 6 0.5C9.31371 0.5 12 3.18629 12 6.5C12 7.79583 11.5892 8.99572 10.8907 9.97653L15.7071 14.7929C16.0976 15.1834 16.0976 15.8166 15.7071 16.2071C15.3166 16.5976 14.6834 16.5976 14.2929 16.2071L9.47653 11.3907C8.49572 12.0892 7.29583 12.5 6 12.5C2.68629 12.5 0 9.81371 0 6.5Z" fill="#9CA3AF"/>
             </svg>
           </div>
           {/* Search | End */}
+          {/* Contacts | Start */}
+          <div className="Contacts-table">
+              {/* Contacts Title | Start */}
+              <div className="pb-[16px]">
+                <h1 className="text-lg font-semibold text-gray-900">Contacts</h1>
+              </div>
+              {/* Contacts Title | Start */}
+              {/* Contacts Table | Start */}
+              <div className="">
+                <table class="border-collapse border table-auto w-full">
+                  {/* Contacts Table Head | Start */}
+                  <thead>
+                    <tr className="text-xs font-medium text-left text-gray-500 bg-gray-50">
+                      <th class="border border-gray-200  w-[300px] px-[24px] py-[12px]">NAME</th>
+                      <th class="border border-gray-200  w-[318px] px-[24px] py-[12px]">EMAIL</th>
+                      <th class="border border-gray-200 w-[220px] px-[24px] py-[12px]">PHONE NUMBER</th>
+                      <th class="border border-gray-200 w-[200px] px-[24px] py-[12px]"></th>
+                    </tr>
+                  </thead>
+                  {/* Contacts Table Head | End */}
+                  {/* Contacts Table Body | Start */}
+                  <tbody>
+                    {contactList.map((contact) => {
+                      return <tr className="border-b-[1px] border-b-gray-200 hover:bg-gray-50">
+                              <td className="px-[24px] py-[16px] font-medium text-sm text-gray-900 flex gap-[16px] items-center">
+                                <img src={avatar} alt=""/>
+                                {contact.name}
+                              </td>
+                              <td className="px-[24px] py-[16px] text-gray-500 text-sm">
+                                {contact.email}
+                              </td>
+                              <td className="px-[24px] py-[16px] text-gray-500 text-sm">
+                                {contact.phone}
+                              </td>
+                              {/* Contact Actions | Start */}
+                              <td className="inline-flex px-[24px] py-[16px] gap-[16px] mt-[-33px] items-center">
+                                {/* Contact Favorite | Start */}
+                                <div className='cursor-pointer Star group' onClick={() => {favContact(contact)}}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="17" viewBox="0 0 18 17" fill="none" className={`${contact.isFavorite ? 'fill-gray-400' : ''} group-hover:fill-gray-400`}>
+                                    <path d="M8.04896 1.92664C8.34833 1.00537 9.65167 1.00538 9.95104 1.92664L11.0208 5.21864C11.1547 5.63063 11.5386 5.90957 11.9718 5.90958L15.4333 5.90971C16.402 5.90975 16.8047 7.1493 16.0211 7.71871L13.2208 9.75341C12.8703 10.008 12.7237 10.4594 12.8575 10.8714L13.927 14.1635C14.2263 15.0847 13.1719 15.8508 12.3882 15.2815L9.58775 13.247C9.23728 12.9924 8.76272 12.9924 8.41225 13.247L5.61179 15.2815C4.82809 15.8508 3.77367 15.0847 4.07297 14.1635L5.14249 10.8714C5.27634 10.4594 5.1297 10.008 4.77924 9.75341L1.97894 7.71871C1.19528 7.1493 1.59804 5.90975 2.56672 5.90971L6.02818 5.90958C6.46137 5.90957 6.8453 5.63063 6.97918 5.21864L8.04896 1.92664Z" stroke="#9CA3AF" stroke-width="2"/>
+                                  </svg>
+                                </div>
+                                {/* Contact Favorite | End */}
+                                {/* Contact Delete | Start */}
+                                <div className="cursor-pointer Trash group" onClick={() => {setContactId(contact.id); setShowContactModal(true)}}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="18" viewBox="0 0 16 18" fill="none" className="group-hover:fill-gray-400">
+                                    <path d="M13.8333 4.83333L13.1105 14.9521C13.0482 15.8243 12.3225 16.5 11.4481 16.5H4.55184C3.67745 16.5 2.95171 15.8243 2.88941 14.9521L2.16665 4.83333M6.33331 8.16667V13.1667M9.66665 8.16667V13.1667M10.5 4.83333V2.33333C10.5 1.8731 10.1269 1.5 9.66665 1.5H6.33331C5.87308 1.5 5.49998 1.8731 5.49998 2.33333V4.83333M1.33331 4.83333H14.6666" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                  </svg>
+                                </div>
+                                {/* Contact Delete | End */}
+                                {/* Contact Edit | Start */}
+                                <div className="cursor-pointer Edit group">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" className="group-hover:stroke-gray-400">
+                                    <path d="M15.8898 2.11019L16.5969 1.40309V1.40309L15.8898 2.11019ZM4.41673 16.5296V17.5296C4.68194 17.5296 4.9363 17.4242 5.12383 17.2367L4.41673 16.5296ZM1.50006 16.5296H0.500061C0.500061 17.0819 0.947776 17.5296 1.50006 17.5296L1.50006 16.5296ZM1.50006 13.5537L0.792954 12.8466C0.605418 13.0341 0.500061 13.2885 0.500061 13.5537H1.50006ZM13.6507 2.8173C14.0737 2.39423 14.7596 2.39423 15.1827 2.8173L16.5969 1.40309C15.3928 0.198971 13.4406 0.198971 12.2364 1.40309L13.6507 2.8173ZM15.1827 2.8173C15.6058 3.24037 15.6058 3.9263 15.1827 4.34937L16.5969 5.76358C17.801 4.55946 17.801 2.6072 16.5969 1.40309L15.1827 2.8173ZM15.1827 4.34937L3.70962 15.8225L5.12383 17.2367L16.5969 5.76358L15.1827 4.34937ZM4.41673 15.5296H1.50006V17.5296H4.41673V15.5296ZM12.2364 1.40309L0.792954 12.8466L2.20717 14.2608L13.6507 2.8173L12.2364 1.40309ZM0.500061 13.5537V16.5296H2.50006V13.5537H0.500061ZM10.9864 4.0673L13.9327 7.01358L15.3469 5.59937L12.4007 2.65309L10.9864 4.0673Z" fill="#9CA3AF"/>
+                                  </svg>
+                                </div>    
+                                {/* Contact Edit | Start */}
+                              </td>
+                              {/* Contact Actions | End */}
+                            </tr>
+                    })}
+                  </tbody>
+                  {/* Contacts Table Body | End */}
+                </table>
+              </div>
+              {/* Contacts Table | End */}
+          </div>
+          {/* Contacts | End */}
         </div>
         {/* Dashboard | End */}
       </div>
@@ -214,8 +314,33 @@ function App() {
         {/* Modal Buttons | End */}
       </div>
       {/* Create Label Modal | End */}
+      {/* Delete Contact Modal | Start */}
+      <div className={`${showContactModal ? 'opacity-1 left-[50%]' : 'opacity-0 left-[46%]'} transition-all duration-200 mx-[16px] z-50 Label-modal absolute top-[32%] transform translate-x-[-50%] translate-y-[50%] sm:w-[512px] w-[320px]  bg-white shadow-modal p-[24px] rounded-[8px]`}>
+        {/* Modal Title | Start */}
+        <div className="flex gap-[16px]">
+          <div>
+            <img src={danger} alt=""/>
+          </div>
+          <div>
+            <p className="text-base font-medium text-gray-900">
+              Delete contact
+            </p>
+            <span className="text-sm text-gray-500 pt-[8px]">
+              Are you sure you want to delete this contact?
+            </span> 
+          </div>
+        </div>
+        {/* Modal Title | Start */}
+        {/* Modal Buttons | Start */}
+        <div className="flex justify-end gap-[12px] pt-[25px]">
+          <button onClick={() => {setShowContactModal(false); setLabelValidation(''); setLabelName('')}} className="py-[9px] px-[17px] text-sm font-medium text-gray-700 border border-gray-300 rounded-[6px] shadow-button bg-whit hover:border-gray-700 transition-all duration-150">Cancel</button>
+          <button onClick={() => {removeContact(contactId)}} className="py-[9px] px-[17px] text-sm font-medium text-white border border-transparent rounded-[6px] shadow-button bg-red-600 hover:bg-white hover:text-red-600 hover:border-red-600 transition-all duration-150">Delete</button>
+        </div>  
+        {/* Modal Buttons | End */}
+      </div>
+      {/* Delete Contact Modal | End */}
       {/* Black Overlay | Start */}
-      <div onClick={() => {setShowModal(false)}} className={`${showModal ? 'block' : 'hidden'} transition-all duration-200 absolute top-0 left-0 z-40 w-screen h-screen bg-black Black-overlay bg-opacity-70`}>
+      <div onClick={() => {setShowModal(false); setShowContactModal(false);}} className={`${showModal || showContactModal ? 'block' : 'hidden'} transition-all duration-200 absolute top-0 left-0 z-40 w-screen h-screen bg-black Black-overlay bg-opacity-70`}>
 
       </div>
       {/* Black Overlay | End */}

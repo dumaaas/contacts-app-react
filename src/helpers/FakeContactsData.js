@@ -4,6 +4,7 @@
 // label field is string and we used it so we can know in which label list is our contact
 export const ContactsData = [
     {
+        id: 1,
         name: "Marko Dumnic",
         email: "markodumnic8@gmail.com",
         phone: "+38268836393",
@@ -11,6 +12,7 @@ export const ContactsData = [
         label: 'Work'
     },
     {
+        id: 2,
         name: "Nemanja Pejakovic",
         email: "nemanja331@gmail.com",
         phone: "+38269628280",
@@ -18,6 +20,7 @@ export const ContactsData = [
         label: 'Family'
     },
     {
+        id: 3,
         name: "Milos Jovovic",
         email: "milosj@gmail.com",
         phone: "+38269571033",
@@ -25,6 +28,7 @@ export const ContactsData = [
         label: 'Friends'
     },
     {
+        id: 4,
         name: "Stefan Tomovic",
         email: "stefant331@gmail.com",
         phone: "+38267321451",
