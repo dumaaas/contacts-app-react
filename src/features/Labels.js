@@ -12,9 +12,10 @@ export const labelSlice = createSlice({
     },
     reducers: {
         addLabel: (state, action) => {
-
+            state.value.push(action.payload);
         }
     }
 })
 
+export const {addLabel} = labelSlice.actions;
 export default labelSlice.reducer;
