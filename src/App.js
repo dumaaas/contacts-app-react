@@ -18,7 +18,7 @@ function App() {
   // state for label name
   const [labelName, setLabelName] = useState("");
   // state for validation error 
-  const [showLabelValidation, setShowLabelValidation] = useState(false);
+  const [labelValidation, setLabelValidation] = useState('');
   // state for success toast
   const [showSuccessToast, setShowSuccessToast] = useState(false); 
  
@@ -36,16 +36,46 @@ function App() {
   })
 
   const submitLabel = (() => {
+    // if label input is empty show validation msg
     if(!labelName.length) {
-      setShowLabelValidation(true); return;
+      setLabelValidation('This field is required!'); return;
     } 
+
+    // if label input is longer than 15 characters we show validation msg and return from function
+    if(labelName.length > 15) {
+      setLabelValidation('Label name is too long (maximum is 15 characters)'); return;
+    }
+
+    // flag to check if label already exist
+    let alreadyExist = false; 
+
+    // go through label list and if we get to element with same name as label from input, we set flag to true so we can show validation msg
+    labelList.every((item) => {
+      if(item.name === labelName) {
+        alreadyExist = !alreadyExist;
+        return false;
+      }
+      return true;
+    })
+
+    // if flag is true, we show validation msg and return from function
+    if(alreadyExist) {
+      setLabelValidation('Label with this name already exist!');
+      return;
+    }
+
+    // we add new element to the store
+    dispatch(addLabel({name: labelName}));
+    
+    // after we added new element hide modal and clear input
     setLabelName("");
     setShowModal(false);
+    
+    // finally, we show success msg in toast for 2 seconds and after that we hide toast again
     setShowSuccessToast(true);
     setTimeout(() => {
       setShowSuccessToast(false);
     }, 2000);
-    dispatch(addLabel({name: labelName}));
   })
 
   return (
@@ -172,13 +202,13 @@ function App() {
         {/* Modal Title | Start */}
         {/* Modal Input | Start */}
         <div className="py-[16px]">
-            <input value={labelName} className={`${showLabelValidation ? 'border-red-600' : 'border-gray-300'} "transition-all duration-200 outline-none border py-[9px] px-[13px] rounded-[6px] w-full`} onChange={(event) => {setLabelName(event.target.value); setShowLabelValidation(false)}} type="text" />
-            <span className={`${showLabelValidation ? 'opacity-1' : 'opacity-0'} transform transition-all duration-200 text-xs text-red-600`}>This field is required!</span>
+            <input value={labelName} className={`${labelValidation.length ? 'border-red-600' : 'border-gray-300'} "transition-all duration-200 outline-none border py-[9px] px-[13px] rounded-[6px] w-full`} onChange={(event) => {setLabelName(event.target.value); setLabelValidation('')}} type="text" />
+            <span className={`${labelValidation.length ? 'opacity-1' : 'opacity-0'} transform transition-all duration-200 text-xs text-red-600`}>{labelValidation}</span>
         </div>
         {/* Modal Input | End */}
         {/* Modal Buttons | Start */}
         <div className="flex justify-end gap-[12px]">
-          <button onClick={() => {setShowModal(false); setShowLabelValidation(false); setLabelName('')}} className="py-[9px] px-[17px] text-sm font-medium text-gray-700 border border-gray-300 rounded-[6px] shadow-button bg-whit hover:border-gray-700 transition-all duration-150">Cancel</button>
+          <button onClick={() => {setShowModal(false); setLabelValidation(''); setLabelName('')}} className="py-[9px] px-[17px] text-sm font-medium text-gray-700 border border-gray-300 rounded-[6px] shadow-button bg-whit hover:border-gray-700 transition-all duration-150">Cancel</button>
           <button onClick={() => {submitLabel()}} className="py-[9px] px-[17px] text-sm font-medium text-white border border-transparent rounded-[6px] shadow-button bg-indigo hover:bg-white hover:text-indigo hover:border-indigo transition-all duration-150">Save</button>
         </div>  
         {/* Modal Buttons | End */}
