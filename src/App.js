@@ -2,7 +2,7 @@ import './App.css';
 import {useSelector, useDispatch} from "react-redux";
 import {useState} from 'react'
 import {addLabel} from './features/Labels';
-import {deleteContact, addOrRemoveFromFavorites, filterContacts} from './features/Contacts';
+import {deleteContact, addOrRemoveFromFavorites} from './features/Contacts';
 import avatar from './images/png/Avatar.png';
 import danger from './images/png/danger.png';
 
@@ -15,7 +15,11 @@ function App() {
   const contactList = useSelector((state) => state.contacts.value);
   // every data from label list
   const labelList = useSelector((state) => state.labels.value);
-  
+
+
+  // state for contact list data 
+  const [getContactList, setContactList] = useState(contactList);
+  const [getOrginalContactList, setOrginalContactList] = useState(contactList);
   // state toggler for modal label
   const [showModal, setShowModal] = useState(false);
   // state toggler for delete contact modal
@@ -28,6 +32,11 @@ function App() {
   const [showSuccessToast, setShowSuccessToast] = useState(false); 
   // state for user id who should be deleted
   const [contactId, setContactId] = useState(0);
+  // state for contact label
+  const [contactLabel, setContactLabel] = useState('default');
+
+  // state for changing dashboard screen 
+  const [screen, setScreen] = useState('contactList');
  
   // length of favorites contacts
   const favoritesLength = contactList.filter((item) => {
@@ -110,6 +119,32 @@ function App() {
     }, 2000);
   })
 
+  // filter through contacts 
+  const filterContacts = ((search) => {
+    var copyArray = [...getOrginalContactList];
+    setContactList(copyArray.filter((item) => item.name.includes(search) || item.email.includes(search) || item.phone.includes(search)));
+  })
+
+  const showContactsByCondition = ((condition) => {
+    var copyArray = [...contactList];
+    setScreen('contactList');
+    switch (condition) {
+      case 'all':
+        setContactList(contactList);
+        setOrginalContactList(contactList);
+        break;
+      case 'favorites': 
+        setContactList(copyArray.filter((item) => item.isFavorite));
+        setOrginalContactList(copyArray.filter((item) => item.isFavorite));
+        break;
+      default:
+        setContactList(copyArray.filter((item) => item.label === condition));
+        setOrginalContactList(copyArray.filter((item) => item.label === condition));
+        break;
+    }
+    
+  })
+
   return (
     <div className="App">
       {/* Main | Start */}
@@ -131,7 +166,7 @@ function App() {
           </div>
           {/* Logo | End */}
           {/* Create Contact Button | Start */}
-          <div className="create-btn pl-[8px] pt-[29px]">
+          <div className="create-btn pl-[8px] pt-[29px]" onClick={() => {setScreen('createContact')}}>
             <button className="transition-all duration-150 flex gap-[10px] border-[1px] border-transparent items-center bg-indigo text-xs text-white font-medium py-[7px] px-[11px] rounded-[4px] shadow-button group hover:bg-white hover:text-indigo hover:border-[1px] hover:border-indigo">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" className='group-hover:fill-indigo'>
                 <path className='group-hover:fill-indigo' fill-rule="evenodd" clip-rule="evenodd" d="M6.00002 0.400024C6.44185 0.400024 6.80002 0.758197 6.80002 1.20002V5.20002H10.8C11.2419 5.20002 11.6 5.5582 11.6 6.00002C11.6 6.44185 11.2419 6.80002 10.8 6.80002H6.80002V10.8C6.80002 11.2419 6.44185 11.6 6.00002 11.6C5.5582 11.6 5.20002 11.2419 5.20002 10.8V6.80002H1.20002C0.758197 6.80002 0.400024 6.44185 0.400024 6.00002C0.400024 5.5582 0.758197 5.20002 1.20002 5.20002H5.20002V1.20002C5.20002 0.758197 5.5582 0.400024 6.00002 0.400024Z" fill="white"/>
@@ -143,7 +178,7 @@ function App() {
           {/* Sidebar Contact Items | Start */}
           <div className="Sidebar-items pt-[28px] gap-[5px] flex flex-col">
             <div className="flex items-center justify-between py-[10px] px-[12px] rounded-[6px] bg-gray-100 cursor-pointer">
-              <div className="flex justify-center gap-[17px]">
+              <div className="flex justify-center gap-[17px]" onClick={() => {showContactsByCondition('all')}}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="20" viewBox="0 0 16 20" fill="none">
                   <path d="M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M8 12C4.13401 12 1 15.134 1 19H15C15 15.134 11.866 12 8 12Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -157,7 +192,7 @@ function App() {
               </div>
             </div>
             <div className="flex items-center justify-between py-[10px] px-[12px] rounded-[6px] group hover:bg-gray-100 cursor-pointer transition-all duration-200">
-              <div className="flex justify-center gap-[17px]">
+              <div className="flex justify-center gap-[17px]" onClick={() => {showContactsByCondition('favorites')}}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="20" viewBox="0 0 16 20" fill="none">
                   <path d="M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M8 12C4.13401 12 1 15.134 1 19H15C15 15.134 11.866 12 8 12Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -182,7 +217,7 @@ function App() {
           <div className="Sidebar-items gap-[5px] flex flex-col">
             {labelList.map((label) => {
               return <div className="flex items-center justify-between py-[10px] px-[12px] rounded-[6px] group hover:bg-gray-100 cursor-pointer transition-all duration-200">
-                        <div className="flex justify-center gap-[17px]">
+                        <div className="flex justify-center gap-[17px]" onClick={() => {showContactsByCondition(label.name)}}>
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="20" viewBox="0 0 16 20" fill="none">
                             <path d="M1 3C1 1.89543 1.89543 1 3 1H13C14.1046 1 15 1.89543 15 3V19L8 15.5L1 19V3Z" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                           </svg>
@@ -210,24 +245,24 @@ function App() {
         </div>
         {/* Sidebar | End */}
         {/* Dashboard | Start */}
-        <div className="Dashboard-main flex flex-col px-[32px] pb-[26px] gap-[24px] ml-[255px]">
+        <div className="Dashboard-main flex flex-col px-[32px] pb-[26px] gap-[24px] ml-[255px] relative z-30">
           {/* Search | Start */}
           <div className="relative Search">
-            <input type="text" placeholder="Search" className="px-[38px] py-[21.5px] w-full border-b-[1px] border-x-gray-200 outline-none" onChange={(event) => {dispatch(filterContacts({search: event.target.value}));}}/>
+            <input type="text" placeholder="Search" className="px-[38px] py-[21.5px] w-full border-b-[1px] border-x-gray-200 outline-none" onChange={(event) => {filterContacts(event.target.value)}}/>
             <svg className="absolute transform top-[38%] left-[8px]" xmlns="http://www.w3.org/2000/svg" width="16" height="17" viewBox="0 0 16 17" fill="none">
               <path fill-rule="evenodd" clip-rule="evenodd" d="M6 2.5C3.79086 2.5 2 4.29086 2 6.5C2 8.70914 3.79086 10.5 6 10.5C8.20914 10.5 10 8.70914 10 6.5C10 4.29086 8.20914 2.5 6 2.5ZM0 6.5C0 3.18629 2.68629 0.5 6 0.5C9.31371 0.5 12 3.18629 12 6.5C12 7.79583 11.5892 8.99572 10.8907 9.97653L15.7071 14.7929C16.0976 15.1834 16.0976 15.8166 15.7071 16.2071C15.3166 16.5976 14.6834 16.5976 14.2929 16.2071L9.47653 11.3907C8.49572 12.0892 7.29583 12.5 6 12.5C2.68629 12.5 0 9.81371 0 6.5Z" fill="#9CA3AF"/>
             </svg>
           </div>
           {/* Search | End */}
           {/* Contacts | Start */}
-          <div className="Contacts-table">
-              {/* Contacts Title | Start */}
-              <div className="pb-[16px]">
+          <div className={`${screen === 'contactList' ? 'block': 'hidden'}`}>
+            {/* Contacts Title | Start */}
+            <div className="pb-[16px]">
                 <h1 className="text-lg font-semibold text-gray-900">Contacts</h1>
-              </div>
-              {/* Contacts Title | Start */}
-              {/* Contacts Table | Start */}
-              <div className="">
+            </div>
+            {/* Contacts Title | End */}
+            {/* Contacts Table | Start */}
+            <div className="">
                 <table class="border-collapse border table-auto w-full">
                   {/* Contacts Table Head | Start */}
                   <thead>
@@ -241,7 +276,7 @@ function App() {
                   {/* Contacts Table Head | End */}
                   {/* Contacts Table Body | Start */}
                   <tbody>
-                    {contactList.map((contact) => {
+                    {getContactList.map((contact) => {
                       return <tr className="border-b-[1px] border-b-gray-200 hover:bg-gray-50">
                               <td className="px-[24px] py-[16px] font-medium text-sm text-gray-900 flex gap-[16px] items-center">
                                 <img src={avatar} alt=""/>
@@ -283,16 +318,61 @@ function App() {
                   </tbody>
                   {/* Contacts Table Body | End */}
                 </table>
-              </div>
-              {/* Contacts Table | End */}
+            </div>
+            {/* Contacts Table | End */}
           </div>
           {/* Contacts | End */}
+          {/* Create Contact | Start */}
+          <div className={`${screen === 'createContact' ? 'block': 'hidden'} max-w-[486px]`}>
+            {/* Contacts Title | Start */}
+            <div className="pb-[40px]">
+                <h1 className="text-lg font-semibold text-gray-900">Create contact</h1>
+            </div>
+            {/* Contacts Title | End */}
+              <label className="text-sm font-medium text-gray-700 inline-block pb-[4px]">Photo</label>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-[20px]">
+                  <div className=""><img src={avatar} alt=""/></div>
+                  <div className=""><button className="border-[1px] border-gray-300 rounded-[6px] py-[9px] px-[17px] font-medium text-sm text-gray-700 hover:border-gray-700">Change</button></div>
+                </div>
+                <div className="">
+                    <select defaultValue={contactLabel} onChange={(event) => {setContactLabel(event.target.value)}} className="border-[1px] border-gray-300 rounded-[6px] py-[9px] px-[17px] font-medium text-sm text-gray-700 hover:border-gray-700">
+                    <option value="default" disabled hidden>Labels</option>
+                    {labelList.map((label) => {
+                      return <option value={label.name}>{label.name}</option>
+                    })}
+                    </select>
+                </div>
+              </div>
+              <div className="pt-[24px]">
+                <label className="inline-block font-medium text-sm text-gray-700 pb-[4px]">Name</label>
+                <input value={labelName} className={`${labelValidation.length ? 'border-red-600' : 'border-gray-300'} "transition-all duration-200 outline-none border py-[9px] px-[13px] rounded-[6px] w-full`} onChange={(event) => {setLabelName(event.target.value); setLabelValidation('')}} type="text" />
+                <span className={`${labelValidation.length ? 'opacity-1' : 'opacity-0'} transform transition-all duration-200 text-xs text-red-600`}>{labelValidation}</span>
+              </div>
+              <div className="pt-[24px]">
+                <label className="inline-block -medium text-sm text-gray-700 pb-[4px]">Email address</label>
+                <input value={labelName} className={`${labelValidation.length ? 'border-red-600' : 'border-gray-300'} "transition-all duration-200 outline-none border py-[9px] px-[13px] rounded-[6px] w-full`} onChange={(event) => {setLabelName(event.target.value); setLabelValidation('')}} type="text" />
+                <span className={`${labelValidation.length ? 'opacity-1' : 'opacity-0'} transform transition-all duration-200 text-xs text-red-600`}>{labelValidation}</span>
+              </div>
+              <div className="pt-[24px]">
+                <label className="inline-block font-medium text-sm text-gray-700 pb-[4px]">Phone number</label>
+                <input value={labelName} className={`${labelValidation.length ? 'border-red-600' : 'border-gray-300'} "transition-all duration-200 outline-none border py-[9px] px-[13px] rounded-[6px] w-full`} onChange={(event) => {setLabelName(event.target.value); setLabelValidation('')}} type="text" />
+                <span className={`${labelValidation.length ? 'opacity-1' : 'opacity-0'} transform transition-all duration-200 text-xs text-red-600`}>{labelValidation}</span>
+              </div>
+              {/* Modal Buttons | Start */}
+              <div className="flex justify-start gap-[12px] pt-[24px]">
+                <button onClick={() => {setShowModal(false); setLabelValidation(''); setLabelName('')}} className="py-[9px] px-[17px] text-sm font-medium text-gray-700 border border-gray-300 rounded-[6px] shadow-button bg-whit hover:border-gray-700 transition-all duration-150">Cancel</button>
+                <button onClick={() => {submitLabel()}} className="py-[9px] px-[17px] text-sm font-medium text-white border border-transparent rounded-[6px] shadow-button bg-indigo hover:bg-white hover:text-indigo hover:border-indigo transition-all duration-150">Save</button>
+              </div>  
+              {/* Modal Buttons | End */}
+          </div>
+          {/* Create Contact | End */}
         </div>
         {/* Dashboard | End */}
       </div>
       {/* Main | End */}
       {/* Create Label Modal | Start */}
-      <div className={`${showModal ? 'opacity-1 left-[50%]' : 'opacity-0 left-[46%]'} transition-all duration-200 mx-[16px] z-50 Label-modal absolute top-[32%] transform translate-x-[-50%] translate-y-[50%] sm:w-[512px] w-[320px]  bg-white shadow-modal p-[24px] rounded-[8px]`}>
+      <div className={`${showModal ? 'opacity-1 left-[50%] z-50' : 'opacity-0 left-[46%] z-10'} transition-all duration-200 mx-[16px] Label-modal absolute top-[32%] transform translate-x-[-50%] translate-y-[50%] sm:w-[512px] w-[320px]  bg-white shadow-modal p-[24px] rounded-[8px]`}>
         {/* Modal Title | Start */}
         <div className="">
             <p className="text-base font-medium text-gray-900">
@@ -315,7 +395,7 @@ function App() {
       </div>
       {/* Create Label Modal | End */}
       {/* Delete Contact Modal | Start */}
-      <div className={`${showContactModal ? 'opacity-1 left-[50%]' : 'opacity-0 left-[46%]'} transition-all duration-200 mx-[16px] z-50 Label-modal absolute top-[32%] transform translate-x-[-50%] translate-y-[50%] sm:w-[512px] w-[320px]  bg-white shadow-modal p-[24px] rounded-[8px]`}>
+      <div className={`${showContactModal ? 'opacity-1 left-[50%] z-50' : 'opacity-0 left-[46%] z-10'} transition-all duration-200 mx-[16px] Label-modal absolute top-[32%] transform translate-x-[-50%] translate-y-[50%] sm:w-[512px] w-[320px]  bg-white shadow-modal p-[24px] rounded-[8px]`}>
         {/* Modal Title | Start */}
         <div className="flex gap-[16px]">
           <div>
@@ -345,7 +425,7 @@ function App() {
       </div>
       {/* Black Overlay | End */}
       {/* Toast for Success Label | Start */}
-      <div className={`${showSuccessToast ? 'opacity-1 top-[20px]' : 'border-[1px] border-green-500 opacity-0 top-[-40px]'} absolute transition-all duration-150 right-[20px] p-[24px] bg-green-200 rounded-[8px]`}>
+      <div className={`${showSuccessToast ? 'opacity-1 top-[20px]' : 'border-[1px] border-green-500 opacity-0 top-[-40px]'}  z-50 absolute transition-all duration-150 right-[20px] p-[24px] bg-green-200 rounded-[8px]`}>
             <p className="font-medium text-green-500 text-md">Successfully added</p>
       </div>
       {/* Toast for Success Label | End */}
