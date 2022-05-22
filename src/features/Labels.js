@@ -11,6 +11,7 @@ export const labelSlice = createSlice({
         value: LabelsData
     },
     reducers: {
+        // add new label
         addLabel: (state, action) => {
             state.value.push(action.payload);
         }

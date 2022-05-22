@@ -1,434 +1,80 @@
 import './App.css';
-import {useSelector, useDispatch} from "react-redux";
+import {useSelector} from "react-redux";
 import {useState} from 'react'
-import {addLabel} from './features/Labels';
-import {deleteContact, addOrRemoveFromFavorites} from './features/Contacts';
-import avatar from './images/png/Avatar.png';
-import danger from './images/png/danger.png';
+import Sidebar from './components/sidebar/Sidebar';
+import Search from './components/search/Search';
+import {ContactContext} from './helpers/Contexts';
+import CreateModal from './components/createModal/CreateModal';
+import ContactsTable from './components/contactsTable/ContactsTable';
+import DeleteContactModal from './components/deleteContactModal/DeleteContactModal';
+import CreateContact from './components/createContact/CreateContact';
+import BlackOverlay from './components/blackOverlay/BlackOverlay';
+import Toast from './components/toast/Toast';
 
 function App() {
-  
-  // we need dispatch in every component where we use action
-  const dispatch = useDispatch();
-
   // every data from contact list
   const contactList = useSelector((state) => state.contacts.value);
   // every data from label list
   const labelList = useSelector((state) => state.labels.value);
 
-
-  // state for contact list data 
-  const [getContactList, setContactList] = useState(contactList);
-  const [getOrginalContactList, setOrginalContactList] = useState(contactList);
   // state toggler for modal label
   const [showModal, setShowModal] = useState(false);
+  // state for changing dashboard screen, default is 'contactList' which shows <ContactTable/>
+  const [dashboardScreen, setDashboardScreen] = useState('contactList');
   // state toggler for delete contact modal
-  const [showContactModal, setShowContactModal] = useState(false);
-  // state for label name
-  const [labelName, setLabelName] = useState("");
-  // state for validation error 
-  const [labelValidation, setLabelValidation] = useState('');
+  const [showDeleteContactModal, setShowDeleteContactModal] = useState(false);
   // state for success toast
   const [showSuccessToast, setShowSuccessToast] = useState(false); 
-  // state for user id who should be deleted
+  // state for toast msg
+  const [successToastMsg, setSuccessToastMsg] = useState('');
+  // state for contactId
   const [contactId, setContactId] = useState(0);
-  // state for contact label
-  const [contactLabel, setContactLabel] = useState('default');
+  // state for search query
+  const [searchQuery, setSearchQuery] = useState('');
+  // state for favorites query
+  const [favoritesQuery, setFavoritesQuery] = useState(false);
+  // state for label query
+  const [labelQuery, setLabelQuery] = useState('');
 
-  // state for changing dashboard screen 
-  const [screen, setScreen] = useState('contactList');
- 
-  // length of favorites contacts
-  const favoritesLength = contactList.filter((item) => {
-    return item.isFavorite;
-  }).length;
-
-  // helper function that helps us count number of labels by their name
-  const countLabelLength = ((name) => {
-    const length = contactList.filter((item) => {
-      return item.label === name;
-    }).length;
-    return length;
-  })
-
-  // function for submiting label when we are creating one
-  const submitLabel = (() => {
-    // if label input is empty show validation msg
-    if(!labelName.length) {
-      setLabelValidation('This field is required!'); return;
-    } 
-
-    // if label input is longer than 15 characters we show validation msg and return from function
-    if(labelName.length > 15) {
-      setLabelValidation('Label name is too long (maximum is 15 characters)'); return;
-    }
-
-    // flag to check if label already exist
-    let alreadyExist = false; 
-
-    // go through label list and if we get to element with same name as label from input, we set flag to true so we can show validation msg
-    labelList.every((item) => {
-      if(item.name === labelName) {
-        alreadyExist = !alreadyExist;
-        return false;
-      }
-      return true;
-    })
-
-    // if flag is true, we show validation msg and return from function
-    if(alreadyExist) {
-      setLabelValidation('Label with this name already exist!');
-      return;
-    }
-
-    // we add new element to the store
-    dispatch(addLabel({name: labelName}));
-    
-    // after we added new element hide modal and clear input
-    setLabelName("");
-    setShowModal(false);
-    
-    // finally, we show success msg in toast for 2 seconds and after that we hide toast again
-    setShowSuccessToast(true);
-    setTimeout(() => {
-      setShowSuccessToast(false);
-    }, 2000);
-  })
-
-  // function for removing contact from store
-  const removeContact = ((id) => {
-    // we delete contact from store
-    dispatch(deleteContact({id: id}));
-    // after that we show success msg
-    setShowSuccessToast(true);
-    setTimeout(() => {
-      setShowSuccessToast(false);
-    }, 2000);
-    // hide delete modal
-    setShowContactModal(false);
-  })
-
-  // function for adding or removing contact from list of favorites
-  const favContact = ((contact) => {
-    // we add or remove contact from favorites
-    dispatch(addOrRemoveFromFavorites({id: contact.id, isFavorite: !contact.isFavorite}));
-    // after that we show success msg
-    setShowSuccessToast(true);
-    setTimeout(() => {
-      setShowSuccessToast(false);
-    }, 2000);
-  })
-
-  // filter through contacts 
-  const filterContacts = ((search) => {
-    var copyArray = [...getOrginalContactList];
-    setContactList(copyArray.filter((item) => item.name.includes(search) || item.email.includes(search) || item.phone.includes(search)));
-  })
-
-  const showContactsByCondition = ((condition) => {
-    var copyArray = [...contactList];
-    setScreen('contactList');
-    switch (condition) {
-      case 'all':
-        setContactList(contactList);
-        setOrginalContactList(contactList);
-        break;
-      case 'favorites': 
-        setContactList(copyArray.filter((item) => item.isFavorite));
-        setOrginalContactList(copyArray.filter((item) => item.isFavorite));
-        break;
-      default:
-        setContactList(copyArray.filter((item) => item.label === condition));
-        setOrginalContactList(copyArray.filter((item) => item.label === condition));
-        break;
-    }
-    
-  })
-
+  // we use ContactContext so we can manipulate with states from App component in all others components
   return (
     <div className="App">
-      {/* Main | Start */}
-      <div className="Main ">
-        {/* Sidebar | Start */}
-        <div className="Sidebar w-[255px] bg-white border-r-[1px] py-[21px] px-[8px] border-r-gray-200 fixed h-screen">
-          {/* Logo | Start */}
-          <div className="logo pl-[9px] flex items-center  gap-[10px]">
-            <svg width="33" height="30" viewBox="0 0 33 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13.9844 27.4376C14.179 26.9367 14.2717 26.4021 14.2573 25.865C14.2869 24.3764 14.6848 22.9184 15.4153 21.621C16.144 20.3258 17.1831 19.2321 18.4393 18.438C18.9044 18.1885 19.314 17.8473 19.6435 17.4349C19.9729 17.0225 20.2153 16.5476 20.3559 16.0389C20.4965 15.5301 20.5324 14.9982 20.4615 14.4751C20.3905 13.9521 20.2143 13.4489 19.9433 12.996C19.5813 12.391 19.0603 11.895 18.4393 11.565C18.0833 11.318 17.7413 11.052 17.4153 10.767L16.5983 9.967C15.1012 8.3932 14.2617 6.30708 14.2513 4.135C14.2667 3.59777 14.1744 3.06288 13.9798 2.56188C13.7853 2.06089 13.4923 1.60395 13.1183 1.218C12.7459 0.832488 12.2997 0.52595 11.8062 0.316684C11.3128 0.107418 10.7822 -0.000286365 10.2463 5.71818e-07C9.71058 0.000756001 9.1805 0.108938 8.68737 0.318146C8.19423 0.527354 7.74807 0.833339 7.37526 1.218C7.00188 1.60462 6.70937 2.06183 6.51482 2.56287C6.32028 3.06391 6.22762 3.59872 6.24226 4.136C6.251 4.83344 6.4431 5.5163 6.79926 6.116C7.1542 6.71469 7.66095 7.20902 8.26826 7.549C10.7273 9.105 12.4383 12.08 12.4383 15.006C12.4322 17.1592 11.6087 19.2298 10.1343 20.799L8.27426 22.451C7.66726 22.79 7.16026 23.284 6.80426 23.884C6.44726 24.483 6.25626 25.167 6.24726 25.865C6.23197 26.4022 6.32433 26.9371 6.51891 27.438C6.71349 27.939 7.00636 28.396 7.38026 28.782C7.7527 29.1674 8.19893 29.4739 8.69236 29.6832C9.18578 29.8924 9.7163 30.0002 10.2523 30C10.7881 29.9994 11.3184 29.8913 11.8117 29.682C12.305 29.4728 12.7513 29.1668 13.1243 28.782C13.4975 28.3955 13.7899 27.9384 13.9844 27.4376Z" fill="#4F46E5"/>
-              <path d="M19.4163 6.36C18.9753 5.698 18.7403 4.919 18.7403 4.123C18.7409 3.05673 19.1633 2.034 19.9153 1.278C20.5691 0.62024 21.4314 0.210504 22.3543 0.119089C23.2772 0.0276751 24.2031 0.260281 24.9733 0.777001C25.6329 1.2199 26.1466 1.84836 26.4493 2.583C26.752 3.31848 26.831 4.12692 26.6764 4.9071C26.5219 5.68728 26.1406 6.40452 25.5803 6.969C25.0217 7.53193 24.308 7.91563 23.5304 8.07112C22.7527 8.22661 21.9464 8.14685 21.2143 7.842C20.4815 7.53685 19.8557 7.02107 19.4163 6.36Z" fill="#4F46E5"/>
-              <path d="M20.5213 22.518C21.1803 22.076 21.9553 21.84 22.7473 21.84V21.838C23.2737 21.8386 23.7949 21.9432 24.2809 22.1457C24.7669 22.3482 25.2081 22.6446 25.5793 23.018C26.2352 23.6779 26.6432 24.544 26.7343 25.47C26.8254 26.3959 26.594 27.3249 26.0793 28.1C25.6399 28.762 25.0137 29.2785 24.2803 29.584C23.5482 29.8888 22.7418 29.9686 21.9642 29.8131C21.1865 29.6576 20.4729 29.2739 19.9143 28.711C19.3538 28.1464 18.9723 27.429 18.8177 26.6486C18.6632 25.8683 18.7423 25.0596 19.0453 24.324C19.348 23.5894 19.8616 22.9609 20.5213 22.518Z" fill="#4F46E5"/>
-              <path d="M32.3243 12.758C32.7641 13.4198 32.9991 14.1974 32.9993 14.9931C32.9986 16.0597 32.5762 17.0827 31.8243 17.839C31.453 18.2122 31.0118 18.5086 30.5258 18.7111C30.0398 18.9136 29.5187 19.0182 28.9923 19.019C28.1994 19.019 27.4245 18.783 26.7663 18.341C26.1066 17.8981 25.593 17.2696 25.2903 16.535C24.9873 15.7994 24.9082 14.9907 25.0627 14.2104C25.2173 13.43 25.5988 12.7126 26.1593 12.148C26.7179 11.5849 27.4318 11.2011 28.2096 11.0456C28.9875 10.8901 29.794 10.9699 30.5263 11.275C31.2592 11.5804 31.885 12.0966 32.3243 12.758Z" fill="#4F46E5"/>
-              <path d="M1.78026 11.647C2.43926 11.205 3.21326 10.969 4.00626 10.969C4.53261 10.9701 5.05357 11.075 5.53934 11.2776C6.02511 11.4803 6.46617 11.7767 6.83726 12.15C7.49287 12.8097 7.90068 13.6754 7.99178 14.601C8.08288 15.5265 7.85169 16.4552 7.33726 17.23C6.89793 17.8914 6.27217 18.4075 5.53926 18.713C4.8069 19.0164 4.00093 19.0953 3.22361 18.9399C2.44629 18.7845 1.73266 18.4017 1.17326 17.84C0.612965 17.2755 0.231653 16.5583 0.0770756 15.7781C-0.0775017 14.9979 0.00152573 14.1895 0.304262 13.454C0.606855 12.719 1.12048 12.0902 1.78026 11.647Z" fill="#4F46E5"/>
-            </svg>
-            <h2 className='text-base font-bold'>
-              Contacts
-            </h2>
+      <ContactContext.Provider value={{showModal, setShowModal, dashboardScreen, setDashboardScreen, showDeleteContactModal, setShowDeleteContactModal, labelQuery, setLabelQuery, searchQuery, setSearchQuery, favoritesQuery, setFavoritesQuery, contactId, setContactId, showSuccessToast, setShowSuccessToast, successToastMsg, setSuccessToastMsg}}>
+        {/* Main | Start */}
+        <div className="Main ">
+          {/* Sidebar | Start */}
+          <Sidebar contactList={contactList} labelList={labelList}/>
+          {/* Sidebar | End */}
+          {/* Dashboard | Start */}
+          <div className="overflow-x-auto Dashboard-main flex flex-col px-[32px] pb-[26px] gap-[24px] ml-[255px] relative z-30">
+            {/* Search | Start */}
+            <Search/>
+            {/* Search | End */}
+            {/* Two Main screens which shows in dashboard with condition | START */}
+              {/* Contacts | Start */}
+              {dashboardScreen === 'contactList' && <ContactsTable contactList={contactList} searchQuery={searchQuery} favoritesQuery={favoritesQuery} labelQuery={labelQuery}/> }
+              {/* Contacts | End */}
+              {/* Create Contact | Start */}
+              {dashboardScreen === 'createContact' && <CreateContact labelList={labelList} contactList={contactList} />}
+              {/* Create Contact | End */}
+            {/* Two Main screens which shows in dashboard with condition | END */}
           </div>
-          {/* Logo | End */}
-          {/* Create Contact Button | Start */}
-          <div className="create-btn pl-[8px] pt-[29px]" onClick={() => {setScreen('createContact')}}>
-            <button className="transition-all duration-150 flex gap-[10px] border-[1px] border-transparent items-center bg-indigo text-xs text-white font-medium py-[7px] px-[11px] rounded-[4px] shadow-button group hover:bg-white hover:text-indigo hover:border-[1px] hover:border-indigo">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" className='group-hover:fill-indigo'>
-                <path className='group-hover:fill-indigo' fill-rule="evenodd" clip-rule="evenodd" d="M6.00002 0.400024C6.44185 0.400024 6.80002 0.758197 6.80002 1.20002V5.20002H10.8C11.2419 5.20002 11.6 5.5582 11.6 6.00002C11.6 6.44185 11.2419 6.80002 10.8 6.80002H6.80002V10.8C6.80002 11.2419 6.44185 11.6 6.00002 11.6C5.5582 11.6 5.20002 11.2419 5.20002 10.8V6.80002H1.20002C0.758197 6.80002 0.400024 6.44185 0.400024 6.00002C0.400024 5.5582 0.758197 5.20002 1.20002 5.20002H5.20002V1.20002C5.20002 0.758197 5.5582 0.400024 6.00002 0.400024Z" fill="white"/>
-              </svg>
-              Create contact
-            </button>
-          </div>
-          {/* Create Contact Button | End */}
-          {/* Sidebar Contact Items | Start */}
-          <div className="Sidebar-items pt-[28px] gap-[5px] flex flex-col">
-            <div className="flex items-center justify-between py-[10px] px-[12px] rounded-[6px] bg-gray-100 cursor-pointer">
-              <div className="flex justify-center gap-[17px]" onClick={() => {showContactsByCondition('all')}}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="20" viewBox="0 0 16 20" fill="none">
-                  <path d="M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M8 12C4.13401 12 1 15.134 1 19H15C15 15.134 11.866 12 8 12Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <p className="text-sm font-medium text-gray-900">
-                  Contacts
-                </p>
-              </div>
-              <div className='w-[32px] h-[20px] rounded-[10px] bg-white flex items-center justify-center'>
-                <span className="text-xs font-medium text-center text-gray-900">{contactList.length}</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between py-[10px] px-[12px] rounded-[6px] group hover:bg-gray-100 cursor-pointer transition-all duration-200">
-              <div className="flex justify-center gap-[17px]" onClick={() => {showContactsByCondition('favorites')}}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="20" viewBox="0 0 16 20" fill="none">
-                  <path d="M12 5C12 7.20914 10.2091 9 8 9C5.79086 9 4 7.20914 4 5C4 2.79086 5.79086 1 8 1C10.2091 1 12 2.79086 12 5Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M8 12C4.13401 12 1 15.134 1 19H15C15 15.134 11.866 12 8 12Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <p className="text-sm font-medium text-gray-600 group-hover:text-gray-900">
-                  Favorites
-                </p>
-              </div>
-              <div className='w-[32px] h-[20px] rounded-[10px] bg-gray-100 group-hover:bg-white flex items-center justify-center'>
-                <span className="text-xs font-medium text-center text-gray-600 group-hover:text-gray-900">{ favoritesLength} </span>
-              </div>
-            </div>
-          </div>
-          {/* Sidebar Contact Items | End */}
-          {/* Sidebar Label Divider | Start */}
-          <div className="Sidebar-divider flex gap-[8px] items-center py-[20px]">
-            <p className="text-sm text-gray-500">Labels</p>
-            <div className="w-full h-[1px] bg-gray-300"></div>
-          </div>
-          {/* Sidebar Label Divider | End */}
-          {/* Sidebar Label Items | Start */}
-          <div className="Sidebar-items gap-[5px] flex flex-col">
-            {labelList.map((label) => {
-              return <div className="flex items-center justify-between py-[10px] px-[12px] rounded-[6px] group hover:bg-gray-100 cursor-pointer transition-all duration-200">
-                        <div className="flex justify-center gap-[17px]" onClick={() => {showContactsByCondition(label.name)}}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="20" viewBox="0 0 16 20" fill="none">
-                            <path d="M1 3C1 1.89543 1.89543 1 3 1H13C14.1046 1 15 1.89543 15 3V19L8 15.5L1 19V3Z" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          </svg>
-                          <p className="text-sm font-medium text-gray-600 group-hover:text-gray-900">
-                            {label.name}
-                          </p>
-                        </div>
-                        <div className='w-[32px] h-[20px] rounded-[10px] bg-gray-100 group-hover:bg-white flex items-center justify-center'>
-                          <span className="text-xs font-medium text-center text-gray-600 group-hover:text-gray-900">{ countLabelLength(label.name) }</span>
-                        </div>
-                      </div>
-            })}
-          </div>
-          {/* Sidebar Label Items | End */}
-          {/* Create Label Button | Start */}
-          <div className="create-btn pl-[8px] pt-[29px]">
-            <button onClick={() => {setShowModal(true)}} className="transition-all duration-150 flex gap-[18px] border-[1px] border-white items-center text-sm text-gray-600 font-medium py-[7px] px-[11px] rounded-[4px] group hover:bg-white hover:text-indigo hover:border-[1px] hover:border-indigo">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none" className='group-hover:fill-indigo fill-gray-400'>
-                <path className='group-hover:fill-indigo fill-gray-400' fill-rule="evenodd" clip-rule="evenodd" d="M6.00002 0.400024C6.44185 0.400024 6.80002 0.758197 6.80002 1.20002V5.20002H10.8C11.2419 5.20002 11.6 5.5582 11.6 6.00002C11.6 6.44185 11.2419 6.80002 10.8 6.80002H6.80002V10.8C6.80002 11.2419 6.44185 11.6 6.00002 11.6C5.5582 11.6 5.20002 11.2419 5.20002 10.8V6.80002H1.20002C0.758197 6.80002 0.400024 6.44185 0.400024 6.00002C0.400024 5.5582 0.758197 5.20002 1.20002 5.20002H5.20002V1.20002C5.20002 0.758197 5.5582 0.400024 6.00002 0.400024Z" fill="white"/>
-              </svg>
-              Create Label
-            </button>
-          </div>
-          {/* Create Label Button | End */}
+          {/* Dashboard | End */}
         </div>
-        {/* Sidebar | End */}
-        {/* Dashboard | Start */}
-        <div className="Dashboard-main flex flex-col px-[32px] pb-[26px] gap-[24px] ml-[255px] relative z-30">
-          {/* Search | Start */}
-          <div className="relative Search">
-            <input type="text" placeholder="Search" className="px-[38px] py-[21.5px] w-full border-b-[1px] border-x-gray-200 outline-none" onChange={(event) => {filterContacts(event.target.value)}}/>
-            <svg className="absolute transform top-[38%] left-[8px]" xmlns="http://www.w3.org/2000/svg" width="16" height="17" viewBox="0 0 16 17" fill="none">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M6 2.5C3.79086 2.5 2 4.29086 2 6.5C2 8.70914 3.79086 10.5 6 10.5C8.20914 10.5 10 8.70914 10 6.5C10 4.29086 8.20914 2.5 6 2.5ZM0 6.5C0 3.18629 2.68629 0.5 6 0.5C9.31371 0.5 12 3.18629 12 6.5C12 7.79583 11.5892 8.99572 10.8907 9.97653L15.7071 14.7929C16.0976 15.1834 16.0976 15.8166 15.7071 16.2071C15.3166 16.5976 14.6834 16.5976 14.2929 16.2071L9.47653 11.3907C8.49572 12.0892 7.29583 12.5 6 12.5C2.68629 12.5 0 9.81371 0 6.5Z" fill="#9CA3AF"/>
-            </svg>
-          </div>
-          {/* Search | End */}
-          {/* Contacts | Start */}
-          <div className={`${screen === 'contactList' ? 'block': 'hidden'}`}>
-            {/* Contacts Title | Start */}
-            <div className="pb-[16px]">
-                <h1 className="text-lg font-semibold text-gray-900">Contacts</h1>
-            </div>
-            {/* Contacts Title | End */}
-            {/* Contacts Table | Start */}
-            <div className="">
-                <table class="border-collapse border table-auto w-full">
-                  {/* Contacts Table Head | Start */}
-                  <thead>
-                    <tr className="text-xs font-medium text-left text-gray-500 bg-gray-50">
-                      <th class="border border-gray-200  w-[300px] px-[24px] py-[12px]">NAME</th>
-                      <th class="border border-gray-200  w-[318px] px-[24px] py-[12px]">EMAIL</th>
-                      <th class="border border-gray-200 w-[220px] px-[24px] py-[12px]">PHONE NUMBER</th>
-                      <th class="border border-gray-200 w-[200px] px-[24px] py-[12px]"></th>
-                    </tr>
-                  </thead>
-                  {/* Contacts Table Head | End */}
-                  {/* Contacts Table Body | Start */}
-                  <tbody>
-                    {getContactList.map((contact) => {
-                      return <tr className="border-b-[1px] border-b-gray-200 hover:bg-gray-50">
-                              <td className="px-[24px] py-[16px] font-medium text-sm text-gray-900 flex gap-[16px] items-center">
-                                <img src={avatar} alt=""/>
-                                {contact.name}
-                              </td>
-                              <td className="px-[24px] py-[16px] text-gray-500 text-sm">
-                                {contact.email}
-                              </td>
-                              <td className="px-[24px] py-[16px] text-gray-500 text-sm">
-                                {contact.phone}
-                              </td>
-                              {/* Contact Actions | Start */}
-                              <td className="inline-flex px-[24px] py-[16px] gap-[16px] mt-[-33px] items-center">
-                                {/* Contact Favorite | Start */}
-                                <div className='cursor-pointer Star group' onClick={() => {favContact(contact)}}>
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="17" viewBox="0 0 18 17" fill="none" className={`${contact.isFavorite ? 'fill-gray-400' : ''} group-hover:fill-gray-400`}>
-                                    <path d="M8.04896 1.92664C8.34833 1.00537 9.65167 1.00538 9.95104 1.92664L11.0208 5.21864C11.1547 5.63063 11.5386 5.90957 11.9718 5.90958L15.4333 5.90971C16.402 5.90975 16.8047 7.1493 16.0211 7.71871L13.2208 9.75341C12.8703 10.008 12.7237 10.4594 12.8575 10.8714L13.927 14.1635C14.2263 15.0847 13.1719 15.8508 12.3882 15.2815L9.58775 13.247C9.23728 12.9924 8.76272 12.9924 8.41225 13.247L5.61179 15.2815C4.82809 15.8508 3.77367 15.0847 4.07297 14.1635L5.14249 10.8714C5.27634 10.4594 5.1297 10.008 4.77924 9.75341L1.97894 7.71871C1.19528 7.1493 1.59804 5.90975 2.56672 5.90971L6.02818 5.90958C6.46137 5.90957 6.8453 5.63063 6.97918 5.21864L8.04896 1.92664Z" stroke="#9CA3AF" stroke-width="2"/>
-                                  </svg>
-                                </div>
-                                {/* Contact Favorite | End */}
-                                {/* Contact Delete | Start */}
-                                <div className="cursor-pointer Trash group" onClick={() => {setContactId(contact.id); setShowContactModal(true)}}>
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="18" viewBox="0 0 16 18" fill="none" className="group-hover:fill-gray-400">
-                                    <path d="M13.8333 4.83333L13.1105 14.9521C13.0482 15.8243 12.3225 16.5 11.4481 16.5H4.55184C3.67745 16.5 2.95171 15.8243 2.88941 14.9521L2.16665 4.83333M6.33331 8.16667V13.1667M9.66665 8.16667V13.1667M10.5 4.83333V2.33333C10.5 1.8731 10.1269 1.5 9.66665 1.5H6.33331C5.87308 1.5 5.49998 1.8731 5.49998 2.33333V4.83333M1.33331 4.83333H14.6666" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                  </svg>
-                                </div>
-                                {/* Contact Delete | End */}
-                                {/* Contact Edit | Start */}
-                                <div className="cursor-pointer Edit group">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" className="group-hover:stroke-gray-400">
-                                    <path d="M15.8898 2.11019L16.5969 1.40309V1.40309L15.8898 2.11019ZM4.41673 16.5296V17.5296C4.68194 17.5296 4.9363 17.4242 5.12383 17.2367L4.41673 16.5296ZM1.50006 16.5296H0.500061C0.500061 17.0819 0.947776 17.5296 1.50006 17.5296L1.50006 16.5296ZM1.50006 13.5537L0.792954 12.8466C0.605418 13.0341 0.500061 13.2885 0.500061 13.5537H1.50006ZM13.6507 2.8173C14.0737 2.39423 14.7596 2.39423 15.1827 2.8173L16.5969 1.40309C15.3928 0.198971 13.4406 0.198971 12.2364 1.40309L13.6507 2.8173ZM15.1827 2.8173C15.6058 3.24037 15.6058 3.9263 15.1827 4.34937L16.5969 5.76358C17.801 4.55946 17.801 2.6072 16.5969 1.40309L15.1827 2.8173ZM15.1827 4.34937L3.70962 15.8225L5.12383 17.2367L16.5969 5.76358L15.1827 4.34937ZM4.41673 15.5296H1.50006V17.5296H4.41673V15.5296ZM12.2364 1.40309L0.792954 12.8466L2.20717 14.2608L13.6507 2.8173L12.2364 1.40309ZM0.500061 13.5537V16.5296H2.50006V13.5537H0.500061ZM10.9864 4.0673L13.9327 7.01358L15.3469 5.59937L12.4007 2.65309L10.9864 4.0673Z" fill="#9CA3AF"/>
-                                  </svg>
-                                </div>    
-                                {/* Contact Edit | Start */}
-                              </td>
-                              {/* Contact Actions | End */}
-                            </tr>
-                    })}
-                  </tbody>
-                  {/* Contacts Table Body | End */}
-                </table>
-            </div>
-            {/* Contacts Table | End */}
-          </div>
-          {/* Contacts | End */}
-          {/* Create Contact | Start */}
-          <div className={`${screen === 'createContact' ? 'block': 'hidden'} max-w-[486px]`}>
-            {/* Contacts Title | Start */}
-            <div className="pb-[40px]">
-                <h1 className="text-lg font-semibold text-gray-900">Create contact</h1>
-            </div>
-            {/* Contacts Title | End */}
-              <label className="text-sm font-medium text-gray-700 inline-block pb-[4px]">Photo</label>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-[20px]">
-                  <div className=""><img src={avatar} alt=""/></div>
-                  <div className=""><button className="border-[1px] border-gray-300 rounded-[6px] py-[9px] px-[17px] font-medium text-sm text-gray-700 hover:border-gray-700">Change</button></div>
-                </div>
-                <div className="">
-                    <select defaultValue={contactLabel} onChange={(event) => {setContactLabel(event.target.value)}} className="border-[1px] border-gray-300 rounded-[6px] py-[9px] px-[17px] font-medium text-sm text-gray-700 hover:border-gray-700">
-                    <option value="default" disabled hidden>Labels</option>
-                    {labelList.map((label) => {
-                      return <option value={label.name}>{label.name}</option>
-                    })}
-                    </select>
-                </div>
-              </div>
-              <div className="pt-[24px]">
-                <label className="inline-block font-medium text-sm text-gray-700 pb-[4px]">Name</label>
-                <input value={labelName} className={`${labelValidation.length ? 'border-red-600' : 'border-gray-300'} "transition-all duration-200 outline-none border py-[9px] px-[13px] rounded-[6px] w-full`} onChange={(event) => {setLabelName(event.target.value); setLabelValidation('')}} type="text" />
-                <span className={`${labelValidation.length ? 'opacity-1' : 'opacity-0'} transform transition-all duration-200 text-xs text-red-600`}>{labelValidation}</span>
-              </div>
-              <div className="pt-[24px]">
-                <label className="inline-block -medium text-sm text-gray-700 pb-[4px]">Email address</label>
-                <input value={labelName} className={`${labelValidation.length ? 'border-red-600' : 'border-gray-300'} "transition-all duration-200 outline-none border py-[9px] px-[13px] rounded-[6px] w-full`} onChange={(event) => {setLabelName(event.target.value); setLabelValidation('')}} type="text" />
-                <span className={`${labelValidation.length ? 'opacity-1' : 'opacity-0'} transform transition-all duration-200 text-xs text-red-600`}>{labelValidation}</span>
-              </div>
-              <div className="pt-[24px]">
-                <label className="inline-block font-medium text-sm text-gray-700 pb-[4px]">Phone number</label>
-                <input value={labelName} className={`${labelValidation.length ? 'border-red-600' : 'border-gray-300'} "transition-all duration-200 outline-none border py-[9px] px-[13px] rounded-[6px] w-full`} onChange={(event) => {setLabelName(event.target.value); setLabelValidation('')}} type="text" />
-                <span className={`${labelValidation.length ? 'opacity-1' : 'opacity-0'} transform transition-all duration-200 text-xs text-red-600`}>{labelValidation}</span>
-              </div>
-              {/* Modal Buttons | Start */}
-              <div className="flex justify-start gap-[12px] pt-[24px]">
-                <button onClick={() => {setShowModal(false); setLabelValidation(''); setLabelName('')}} className="py-[9px] px-[17px] text-sm font-medium text-gray-700 border border-gray-300 rounded-[6px] shadow-button bg-whit hover:border-gray-700 transition-all duration-150">Cancel</button>
-                <button onClick={() => {submitLabel()}} className="py-[9px] px-[17px] text-sm font-medium text-white border border-transparent rounded-[6px] shadow-button bg-indigo hover:bg-white hover:text-indigo hover:border-indigo transition-all duration-150">Save</button>
-              </div>  
-              {/* Modal Buttons | End */}
-          </div>
-          {/* Create Contact | End */}
-        </div>
-        {/* Dashboard | End */}
-      </div>
-      {/* Main | End */}
-      {/* Create Label Modal | Start */}
-      <div className={`${showModal ? 'opacity-1 left-[50%] z-50' : 'opacity-0 left-[46%] z-10'} transition-all duration-200 mx-[16px] Label-modal absolute top-[32%] transform translate-x-[-50%] translate-y-[50%] sm:w-[512px] w-[320px]  bg-white shadow-modal p-[24px] rounded-[8px]`}>
-        {/* Modal Title | Start */}
-        <div className="">
-            <p className="text-base font-medium text-gray-900">
-              Create label
-            </p>
-        </div>
-        {/* Modal Title | Start */}
-        {/* Modal Input | Start */}
-        <div className="py-[16px]">
-            <input value={labelName} className={`${labelValidation.length ? 'border-red-600' : 'border-gray-300'} "transition-all duration-200 outline-none border py-[9px] px-[13px] rounded-[6px] w-full`} onChange={(event) => {setLabelName(event.target.value); setLabelValidation('')}} type="text" />
-            <span className={`${labelValidation.length ? 'opacity-1' : 'opacity-0'} transform transition-all duration-200 text-xs text-red-600`}>{labelValidation}</span>
-        </div>
-        {/* Modal Input | End */}
-        {/* Modal Buttons | Start */}
-        <div className="flex justify-end gap-[12px]">
-          <button onClick={() => {setShowModal(false); setLabelValidation(''); setLabelName('')}} className="py-[9px] px-[17px] text-sm font-medium text-gray-700 border border-gray-300 rounded-[6px] shadow-button bg-whit hover:border-gray-700 transition-all duration-150">Cancel</button>
-          <button onClick={() => {submitLabel()}} className="py-[9px] px-[17px] text-sm font-medium text-white border border-transparent rounded-[6px] shadow-button bg-indigo hover:bg-white hover:text-indigo hover:border-indigo transition-all duration-150">Save</button>
-        </div>  
-        {/* Modal Buttons | End */}
-      </div>
-      {/* Create Label Modal | End */}
-      {/* Delete Contact Modal | Start */}
-      <div className={`${showContactModal ? 'opacity-1 left-[50%] z-50' : 'opacity-0 left-[46%] z-10'} transition-all duration-200 mx-[16px] Label-modal absolute top-[32%] transform translate-x-[-50%] translate-y-[50%] sm:w-[512px] w-[320px]  bg-white shadow-modal p-[24px] rounded-[8px]`}>
-        {/* Modal Title | Start */}
-        <div className="flex gap-[16px]">
-          <div>
-            <img src={danger} alt=""/>
-          </div>
-          <div>
-            <p className="text-base font-medium text-gray-900">
-              Delete contact
-            </p>
-            <span className="text-sm text-gray-500 pt-[8px]">
-              Are you sure you want to delete this contact?
-            </span> 
-          </div>
-        </div>
-        {/* Modal Title | Start */}
-        {/* Modal Buttons | Start */}
-        <div className="flex justify-end gap-[12px] pt-[25px]">
-          <button onClick={() => {setShowContactModal(false); setLabelValidation(''); setLabelName('')}} className="py-[9px] px-[17px] text-sm font-medium text-gray-700 border border-gray-300 rounded-[6px] shadow-button bg-whit hover:border-gray-700 transition-all duration-150">Cancel</button>
-          <button onClick={() => {removeContact(contactId)}} className="py-[9px] px-[17px] text-sm font-medium text-white border border-transparent rounded-[6px] shadow-button bg-red-600 hover:bg-white hover:text-red-600 hover:border-red-600 transition-all duration-150">Delete</button>
-        </div>  
-        {/* Modal Buttons | End */}
-      </div>
-      {/* Delete Contact Modal | End */}
-      {/* Black Overlay | Start */}
-      <div onClick={() => {setShowModal(false); setShowContactModal(false);}} className={`${showModal || showContactModal ? 'block' : 'hidden'} transition-all duration-200 absolute top-0 left-0 z-40 w-screen h-screen bg-black Black-overlay bg-opacity-70`}>
-
-      </div>
-      {/* Black Overlay | End */}
-      {/* Toast for Success Label | Start */}
-      <div className={`${showSuccessToast ? 'opacity-1 top-[20px]' : 'border-[1px] border-green-500 opacity-0 top-[-40px]'}  z-50 absolute transition-all duration-150 right-[20px] p-[24px] bg-green-200 rounded-[8px]`}>
-            <p className="font-medium text-green-500 text-md">Successfully added</p>
-      </div>
-      {/* Toast for Success Label | End */}
+        {/* Main | End */}
+        {/* Create Label Modal | Start */}
+        <CreateModal labelList={labelList}/>
+        {/* Create Label Modal | End */}
+        {/* Delete Contact Modal | Start */}
+        <DeleteContactModal contactId={contactId} />
+        {/* Delete Contact Modal | End */}
+        {/* Black Overlay | Start */}
+        <BlackOverlay />
+        {/* Black Overlay | End */}
+        {/* Toast for Success Label | Start */}
+        <Toast msg={successToastMsg} showSuccessToast={showSuccessToast} />
+        {/* Toast for Success Label | End */}
+      </ContactContext.Provider>
     </div>
   );
 }

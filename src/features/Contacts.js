@@ -13,7 +13,7 @@ export const contactSlice = createSlice({
     reducers: {
         // add new contact action
         addContact: (state, action) => {
-
+            state.value.push(action.payload);
         },
         // delete contact action
         deleteContact: (state, action) => {
@@ -27,8 +27,21 @@ export const contactSlice = createSlice({
                 }
             })
         },
+        // update contact data
+        updateContact: (state, action) => {
+            state.value.map((contact) => {
+                if(contact.id === action.payload.id) {
+                    contact.name = action.payload.name;
+                    contact.email = action.payload.email;
+                    contact.phone = action.payload.phone;
+                    contact.isFavorite = action.payload.isFavorite;
+                    contact.label = action.payload.label;
+                    contact.avatar = action.payload.avatar;
+                }
+            })
+        }
     }
 })
 
-export const { deleteContact, addOrRemoveFromFavorites, filterContacts } = contactSlice.actions;
+export const { addContact, deleteContact, addOrRemoveFromFavorites, updateContact } = contactSlice.actions;
 export default contactSlice.reducer;
